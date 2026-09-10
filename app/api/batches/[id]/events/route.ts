@@ -12,6 +12,8 @@ const EVENT_LABELS: Record<string, string> = {
   OTHER: "其他",
 };
 
+const INSPECTION_RESULTS = ["PASS", "FAIL"];
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
@@ -19,7 +21,7 @@ export async function POST(
   try {
     const { id: batchId } = params;
     const body = await request.json();
-    const { type, operator, note } = body;
+    const { type, operator, note, inspectionResult, inspectionReason } = body;
 
     if (!type || !operator) {
       return NextResponse.json(
@@ -35,6 +37,28 @@ export async function POST(
       );
     }
 
+    // 质检事件必须给出合格结论；不合格必须填原因
+    let result: string | null = null;
+    let reason: string | null = null;
+    if (type === "INSPECTION") {
+      if (!INSPECTION_RESULTS.includes(inspectionResult)) {
+        return NextResponse.json(
+          { error: "请选择质检结论：合格或不合格" },
+          { status: 400 }
+        );
+      }
+      result = inspectionResult;
+      if (result === "FAIL") {
+        if (typeof inspectionReason !== "string" || !inspectionReason.trim()) {
+          return NextResponse.json(
+            { error: "质检不合格时必须填写原因" },
+            { status: 400 }
+          );
+        }
+        reason = inspectionReason.trim();
+      }
+    }
+
     const batch = await prisma.batch.findUnique({ where: { id: batchId } });
     if (!batch) {
       return NextResponse.json({ error: "批次不存在" }, { status: 404 });
@@ -45,7 +69,9 @@ export async function POST(
         batchId,
         type,
         operator: operator.trim(),
-        note: note?.trim() || null,
+        note: typeof note === "string" && note.trim() ? note.trim() : null,
+        inspectionResult: result,
+        inspectionReason: reason,
       },
     });
 

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { TraceTimeline } from "@/components/TraceTimeline";
 import { EventForm } from "@/components/EventForm";
 import { QRCode } from "@/components/QRCode";
+import { InspectionAlert } from "@/components/InspectionAlert";
+import { getLatestInspection } from "@/lib/inspection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
@@ -31,6 +33,8 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
     notFound();
   }
 
+  const latestInspection = getLatestInspection(batch.events);
+
   const headersList = headers();
   const host = headersList.get("host") || "localhost:3000";
   const protocol = host.includes("localhost") ? "http" : "https";
@@ -49,6 +53,13 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
       </div>
 
       <h1 className="text-xl font-bold">批次详情</h1>
+
+      {latestInspection?.inspectionResult === "FAIL" && (
+        <InspectionAlert
+          reason={latestInspection.inspectionReason}
+          createdAt={latestInspection.createdAt}
+        />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">

@@ -37,6 +37,10 @@ model Event {
   type      String
   operator  String
   note      String?
+  // 仅 type=INSPECTION 时有值：PASS 合格 / FAIL 不合格
+  inspectionResult String?
+  // 质检不合格原因（inspectionResult=FAIL 时必填）
+  inspectionReason String?
   createdAt DateTime @default(now())
 
   @@index([batchId])

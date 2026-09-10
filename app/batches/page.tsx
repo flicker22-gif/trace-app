@@ -10,9 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { BatchFilters } from "@/components/BatchFilters";
+import { getLatestInspection } from "@/lib/inspection";
 import Link from "next/link";
-import { Plus, SearchX } from "lucide-react";
+import { Plus, SearchX, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface BatchesPageProps {
@@ -101,30 +103,66 @@ export default async function BatchesPage({ searchParams }: BatchesPageProps) {
                   <TableHead>基地</TableHead>
                   <TableHead>采收日期</TableHead>
                   <TableHead>检测员</TableHead>
+                  <TableHead>质检状态</TableHead>
                   <TableHead className="text-right">环节数</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {batches.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell>
-                      <Link
-                        href={`/batches/${batch.id}`}
-                        className="font-mono font-medium hover:underline"
-                      >
-                        {batch.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{batch.base.name}</TableCell>
-                    <TableCell>
-                      {format(new Date(batch.harvestDate), "yyyy-MM-dd")}
-                    </TableCell>
-                    <TableCell>{batch.inspector}</TableCell>
-                    <TableCell className="text-right">
-                      {batch.events.length}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {batches.map((batch) => {
+                  const latestInspection = getLatestInspection(batch.events);
+                  return (
+                    <TableRow
+                      key={batch.id}
+                      className={
+                        latestInspection?.inspectionResult === "FAIL"
+                          ? "bg-destructive/5"
+                          : undefined
+                      }
+                    >
+                      <TableCell>
+                        <Link
+                          href={`/batches/${batch.id}`}
+                          className="font-mono font-medium hover:underline"
+                        >
+                          {batch.code}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{batch.base.name}</TableCell>
+                      <TableCell>
+                        {format(new Date(batch.harvestDate), "yyyy-MM-dd")}
+                      </TableCell>
+                      <TableCell>{batch.inspector}</TableCell>
+                      <TableCell>
+                        {latestInspection?.inspectionResult === "FAIL" ? (
+                          <Badge
+                            variant="destructive"
+                            title={
+                              latestInspection.inspectionReason
+                                ? `不合格原因：${latestInspection.inspectionReason}`
+                                : undefined
+                            }
+                          >
+                            <XCircle />
+                            质检不合格
+                          </Badge>
+                        ) : latestInspection?.inspectionResult === "PASS" ? (
+                          <Badge variant="success">
+                            <CheckCircle2 />
+                            质检合格
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <MinusCircle />
+                            未质检
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {batch.events.length}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

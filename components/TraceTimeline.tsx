@@ -11,6 +11,8 @@ import {
   CircleDot,
   Sprout,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const EVENT_LABELS: Record<string, string> = {
   SORTING: "分拣",
@@ -49,6 +51,8 @@ export function TraceTimeline({ batch }: TraceTimelineProps) {
       operator: batch.inspector,
       note: `${batch.base.name}（${batch.base.code}）采收`,
       createdAt: batch.createdAt,
+      inspectionResult: undefined,
+      inspectionReason: undefined,
       icon: <Sprout className="h-4 w-4 text-green-600" />,
     },
     ...batch.events.map((event) => ({
@@ -57,6 +61,8 @@ export function TraceTimeline({ batch }: TraceTimelineProps) {
       operator: event.operator,
       note: event.note || undefined,
       createdAt: event.createdAt,
+      inspectionResult: event.inspectionResult,
+      inspectionReason: event.inspectionReason,
       icon: EVENT_ICONS[event.type] || <CircleDot className="h-4 w-4" />,
     })),
   ];
@@ -99,7 +105,13 @@ export function TraceTimeline({ batch }: TraceTimelineProps) {
           {items.map((item, index) => (
             <div key={item.id} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full border bg-background">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border bg-background",
+                    item.inspectionResult === "FAIL" &&
+                      "border-destructive text-destructive"
+                  )}
+                >
                   {item.icon}
                 </div>
                 {index < items.length - 1 && (
@@ -109,6 +121,12 @@ export function TraceTimeline({ batch }: TraceTimelineProps) {
               <div className="flex-1 pb-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{item.type}</span>
+                  {item.inspectionResult === "PASS" && (
+                    <Badge variant="success">合格</Badge>
+                  )}
+                  {item.inspectionResult === "FAIL" && (
+                    <Badge variant="destructive">不合格</Badge>
+                  )}
                   <span className="text-sm text-muted-foreground">
                     {mounted
                       ? format(
@@ -122,6 +140,11 @@ export function TraceTimeline({ batch }: TraceTimelineProps) {
                 <p className="text-sm text-muted-foreground">
                   操作人：{item.operator}
                 </p>
+                {item.inspectionResult === "FAIL" && item.inspectionReason && (
+                  <p className="mt-1 text-sm text-destructive">
+                    不合格原因：{item.inspectionReason}
+                  </p>
+                )}
                 {item.note && (
                   <p className="mt-1 text-sm">{item.note}</p>
                 )}
