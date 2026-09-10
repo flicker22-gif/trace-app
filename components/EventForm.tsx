@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -65,8 +66,10 @@ interface EventFormProps {
 }
 
 export function EventForm({ batchId, onSuccess }: EventFormProps) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, startRefresh] = useTransition();
 
   const {
     register,
@@ -115,6 +118,9 @@ export function EventForm({ batchId, onSuccess }: EventFormProps) {
       }
 
       reset();
+      startRefresh(() => {
+        router.refresh();
+      });
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "创建失败");
@@ -239,8 +245,8 @@ export function EventForm({ batchId, onSuccess }: EventFormProps) {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={loading}>
-            {loading ? "保存中..." : "添加记录"}
+          <Button type="submit" disabled={loading || isRefreshing}>
+            {loading ? "保存中..." : isRefreshing ? "刷新中..." : "添加记录"}
           </Button>
         </CardFooter>
       </form>
