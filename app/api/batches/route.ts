@@ -4,10 +4,14 @@ import { generateBatchCode } from "@/lib/batch-code";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q");
+  const q = searchParams.get("q")?.trim();
+  const baseId = searchParams.get("base")?.trim();
 
   const batches = await prisma.batch.findMany({
-    where: q ? { code: { contains: q } } : undefined,
+    where: {
+      ...(q ? { code: { contains: q } } : {}),
+      ...(baseId ? { baseId } : {}),
+    },
     include: {
       base: true,
       events: { orderBy: { createdAt: "asc" } },
